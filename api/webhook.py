@@ -1,65 +1,39 @@
-from http.server import BaseHTTPRequestHandler
+from vercel import Request, Response
 import json
 import requests
 import os
 
-class handler(BaseHTTPRequestHandler):
-    def do_POST(self):
-        # Read the request data
-        content_length = int(self.headers['Content-Length'])
-        post_data = self.rfile.read(content_length)
-        
-        try:
-            data = json.loads(post_data.decode('utf-8'))
-        except:
+def handler(request: Request) -> Response:
+    if request.method != 'POST':
+        return Response('<h2>🚨 Webhook Server Running! ✅</h2><p>Ready for Chartink alerts!</p>', 200, headers={'content-type': 'text/html'})
+    
+    try:
+        # Get request data
+        if hasattr(request, 'json') and request.json:
+            data = request.json
+        else:
             data = {}
         
-        # Get tokens from environment variables
-        BOT_TOKEN = os.environ.get('BOT_TOKEN')
-        CHAT_ID = os.environ.get('CHAT_ID')
+        # Bot credentials
+        bot_token = os.environ.get('BOT_TOKEN')
+        chat_id = os.environ.get('CHAT_ID')
         
-        if not BOT_TOKEN or not CHAT_ID:
-            self.send_response(400)
-            self.end_headers()
-            self.wfile.write(b'Missing environment variables')
-            return
+        if not bot_token or not chat_id:
+            return Response('Missing credentials', 400)
         
         # Create message
-        message = f"🚨 TRADING ALERT 🚨\n"
-        message += f"Symbol: {data.get('symbol', 'Unknown')}\n"
-        message += f"Price: {data.get('price', 'Unknown')}\n"
-        message += f"Message: {data.get('message', 'Alert triggered')}\n"
-        message += f"Time: {data.get('timestamp', 'Now')}"
+        symbol = data.get('symbol', 'Unknown')
+        price = data.get('price', 'Unknown')
+        msg = data.get('message', 'Alert triggered')
+        
+        telegram_message = f"🚨 TRADING ALERT 🚨\nSymbol: {symbol}\nPrice: {price}\nMessage: {msg}"
         
         # Send to Telegram
-        telegram_url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-        payload = {
-            'chat_id': CHAT_ID,
-            'text': message
-        }
+        url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+        payload = {'chat_id': chat_id, 'text': telegram_message}
+        requests.post(url, data=payload)
         
-        requests.post(telegram_url, data=payload)
+        return Response('Alert sent!', 200)
         
-        # Send response
-        self.send_response(200)
-        self.send_header('Content-type', 'text/plain')
-        self.end_headers()
-        self.wfile.write(b'Alert sent successfully!')
-
-    def do_GET(self):
-        # Handle GET requests (for browser testing)
-        self.send_response(200)
-        self.send_header('Content-type', 'text/html')
-        self.end_headers()
-        
-        html = """
-        <html>
-        <body>
-            <h2>🚨 Webhook Server Running! ✅</h2>
-            <p>This endpoint accepts POST requests from Chartink.</p>
-            <p>Your webhook URL: <strong>https://chartink-telegram-bridge-secure.vercel.app/api/webhook</strong></p>
-            <p>Status: Ready to receive alerts! 🚀</p>
-        </body>
-        </html>
-        """
-        self.wfile.write(html.encode('utf-8'))
+    except Exception as e:
+        return Response(f'Error: {str(e)}', 500)
