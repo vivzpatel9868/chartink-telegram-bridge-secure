@@ -14,7 +14,7 @@ class handler(BaseHTTPRequestHandler):
         except:
             data = {}
         
-        # Get tokens from environment variables (SECURE!)
+        # Get tokens from environment variables
         BOT_TOKEN = os.environ.get('BOT_TOKEN')
         CHAT_ID = os.environ.get('CHAT_ID')
         
@@ -44,4 +44,22 @@ class handler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-type', 'text/plain')
         self.end_headers()
-        self.wfile.write(b'OK')
+        self.wfile.write(b'Alert sent successfully!')
+
+    def do_GET(self):
+        # Handle GET requests (for browser testing)
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html')
+        self.end_headers()
+        
+        html = """
+        <html>
+        <body>
+            <h2>🚨 Webhook Server Running! ✅</h2>
+            <p>This endpoint accepts POST requests from Chartink.</p>
+            <p>Your webhook URL: <strong>https://chartink-telegram-bridge-secure.vercel.app/api/webhook</strong></p>
+            <p>Status: Ready to receive alerts! 🚀</p>
+        </body>
+        </html>
+        """
+        self.wfile.write(html.encode('utf-8'))
