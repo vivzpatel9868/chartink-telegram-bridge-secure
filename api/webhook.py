@@ -1,37 +1,38 @@
-from flask import Flask, request, jsonify
-import requests
+# webhook.py
+
+import json
 import os
+import requests
 
-app = Flask(__name__)
-
-@app.route('/api/webhook', methods=['POST', 'GET'])
-def webhook():
-    if request.method == 'GET':
-        return '<h2>🚨 Webhook Server Running! ✅</h2>'
-    
+def handler(request):
+    if request.method == "GET":
+        return {
+            "statusCode": 200,
+            "headers": {"Content-Type": "text/html"},
+            "body": "<h2>🚨 Webhook Server Running! ✅</h2>"
+        }
     try:
-        data = request.get_json() or {}
-        
+        data = request.json or {}
+
         bot_token = os.environ.get('BOT_TOKEN')
         chat_id = os.environ.get('CHAT_ID')
-        
         if not bot_token or not chat_id:
-            return 'Missing credentials', 400
-        
+            return {
+                "statusCode": 400,
+                "body": "Missing credentials"
+            }
         symbol = data.get('symbol', 'Unknown')
         price = data.get('price', 'Unknown')
         msg = data.get('message', 'Alert triggered')
-        
         telegram_message = f"🚨 ALERT 🚨\nSymbol: {symbol}\nPrice: {price}\nMessage: {msg}"
-        
         url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-        payload = {'chat_id': chat_id, 'text': telegram_message}
-        requests.post(url, data=payload)
-        
-        return 'OK', 200
-        
+        requests.post(url, data={'chat_id': chat_id, 'text': telegram_message})
+        return {
+            "statusCode": 200,
+            "body": "OK"
+        }
     except Exception as e:
-        return f'Error: {str(e)}', 500
-
-if __name__ == '__main__':
-    app.run()
+        return {
+            "statusCode": 500,
+            "body": f"Error: {str(e)}"
+        }
