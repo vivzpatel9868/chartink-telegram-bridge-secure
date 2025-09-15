@@ -3,12 +3,13 @@ import requests
 import os
 import json
 
-class Handler(BaseHTTPRequestHandler):
+class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
-        self.send_header('Content-Type', 'text/html')
+        self.send_header('Content-type', 'text/html')
         self.end_headers()
         self.wfile.write(b'<h2>🚨 Webhook Server Running! ✅</h2>')
+        return
 
     def do_POST(self):
         try:
@@ -41,9 +42,3 @@ class Handler(BaseHTTPRequestHandler):
             self.send_response(500)
             self.end_headers()
             self.wfile.write(str(e).encode())
-
-def handler(request):
-    # This function is retained for Vercel's serverless environment
-    # but the actual logic is handled by the BaseHTTPRequestHandler above.
-    # Vercel will use the class-based approach automatically.
-    pass
